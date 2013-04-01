@@ -189,8 +189,8 @@ void TIM5_IRQHandler() {
   if(TIM_GetITStatus(TIM5, TIM_IT_Update) != RESET) 
   { 
 		/* indicate complete and stop TIM5 */
-		LED6_GPIO_PORT->BSRRH = LED6_PIN;	
-		TIM_Cmd(TIM5, DISABLE);
+		LED3_GPIO_PORT->BSRRL = LED3_PIN;	
+		//TIM_Cmd(TIM5, DISABLE);
 		
     /* Clear TIM5 update Flags */
 		TIM_ClearITPendingBit(TIM5, TIM_IT_Update);

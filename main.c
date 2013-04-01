@@ -109,7 +109,7 @@ void initTIM1() {
 	/* Time base configuration */
 	TIM_TimeBaseStructure.TIM_Prescaler = 65535;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = 1500;
+	TIM_TimeBaseStructure.TIM_Period = 300;
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
 	
@@ -133,6 +133,20 @@ void initTIM5() {
 	/* TIM5 clock enable */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
 	
+	/* TIM5 channel 1 pin (PA0) configuration */
+	GPIO_InitStructure.GPIO_Pin =  USER_BUTTON_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(USER_BUTTON_GPIO_PORT, &GPIO_InitStructure);
+ 
+	/* Connect TIM pins to AF5 */
+	GPIO_PinAFConfig(USER_BUTTON_GPIO_PORT, GPIO_PinSource0, GPIO_AF_TIM5);	
+	
+	/* TIM5 source clock */
+	TIM_ETRClockMode1Config(TIM5, TIM_ExtTRGPSC_OFF, TIM_ExtTRGPolarity_NonInverted, 0x00);
+	
 	/* Time base configuration */
 	TIM_TimeBaseStructure.TIM_Prescaler = 65535;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
@@ -155,19 +169,9 @@ void initTIM5() {
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);	
 
-/* TIM2 interrupt ACTION enable */
+	/* TIM5 interrupt ACTION enable */
 	TIM_ITConfig(TIM5, TIM_IT_Update, ENABLE);
-	
-	/* TIM5 channel 1 pin (PA0) configuration */
-	GPIO_InitStructure.GPIO_Pin =  USER_BUTTON_PIN;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(USER_BUTTON_GPIO_PORT, &GPIO_InitStructure);
- 
-	/* Connect TIM pins to AF5 */
-	GPIO_PinAFConfig(USER_BUTTON_GPIO_PORT, GPIO_PinSource0, GPIO_AF_TIM5);
+
 }
 
 /**
@@ -198,12 +202,12 @@ int main(void)
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(LED5_GPIO_PORT, &GPIO_InitStructure);
 	
-	GPIO_InitStructure.GPIO_Pin = LED6_PIN;
+	GPIO_InitStructure.GPIO_Pin = LED3_PIN;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_Init(LED6_GPIO_PORT, &GPIO_InitStructure);	
+  GPIO_Init(LED3_GPIO_PORT, &GPIO_InitStructure);	
 	
 	initRTC();
 	initAlarm();	
