@@ -110,7 +110,7 @@ void initTIM1() {
 	TIM_TimeBaseStructure.TIM_Prescaler = 65535;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_Period = 1500;
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
 	
 	/* Enable TIM1 interrupt SOURCE */
@@ -121,7 +121,53 @@ void initTIM1() {
 	NVIC_Init(&NVIC_InitStructure);	
 	
 	/* TIM1 interrupt ACTION enable */
-	TIM_ITConfig(TIM11, TIM_IT_Update, ENABLE);
+	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
+}
+
+void initTIM5() {
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+	TIM_ICInitTypeDef TIM_ICInitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+	GPIO_InitTypeDef GPIO_InitStructure;
+	
+	/* TIM5 clock enable */
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
+	
+	/* Time base configuration */
+	TIM_TimeBaseStructure.TIM_Prescaler = 65535;
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_Period = 5;
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInit(TIM5, &TIM_TimeBaseStructure);
+	
+	/* Initializes the TIM peripheral */
+	TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
+	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+	TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
+	TIM_ICInitStructure.TIM_ICFilter = TIM_ICPSC_DIV1;
+	TIM_ICInitStructure.TIM_ICFilter = 0x0;
+	TIM_ICInit(TIM5, &TIM_ICInitStructure);
+	
+	/* Enable TIM5 interrupt SOURCE */
+	NVIC_InitStructure.NVIC_IRQChannel = TIM5_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);	
+
+/* TIM2 interrupt ACTION enable */
+	TIM_ITConfig(TIM5, TIM_IT_Update, ENABLE);
+	
+	/* TIM5 channel 1 pin (PA0) configuration */
+	GPIO_InitStructure.GPIO_Pin =  USER_BUTTON_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(USER_BUTTON_GPIO_PORT, &GPIO_InitStructure);
+ 
+	/* Connect TIM pins to AF5 */
+	GPIO_PinAFConfig(USER_BUTTON_GPIO_PORT, GPIO_PinSource0, GPIO_AF_TIM5);
 }
 
 /**
@@ -136,7 +182,6 @@ int main(void)
 	
   /* Enable the GPIO_LED Clock */
   RCC_AHB1PeriphClockCmd(LED4_GPIO_CLK, ENABLE);
-	RCC_AHB1PeriphClockCmd(LED5_GPIO_CLK, ENABLE);
 
   /* Configure the GPIO_LED pin */
   GPIO_InitStructure.GPIO_Pin = LED4_PIN;
@@ -153,10 +198,21 @@ int main(void)
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(LED5_GPIO_PORT, &GPIO_InitStructure);
 	
+	GPIO_InitStructure.GPIO_Pin = LED6_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_Init(LED6_GPIO_PORT, &GPIO_InitStructure);	
+	
 	initRTC();
 	initAlarm();	
 	
 	initTIM1();
+	initTIM5();
+	
+	//start TIM5
+	TIM_Cmd(TIM5, ENABLE);
 	
 	while(1) {
 	}

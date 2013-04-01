@@ -183,3 +183,20 @@ void TIM1_UP_TIM10_IRQHandler() {
     TIM_Cmd(TIM1, DISABLE);
   }
 }
+
+void TIM5_IRQHandler() {
+  /* Check if TIM5 has enabled IT status */
+  if(TIM_GetITStatus(TIM5, TIM_IT_Update) != RESET) 
+  { 
+		/* indicate complete and stop TIM5 */
+		LED6_GPIO_PORT->BSRRH = LED6_PIN;	
+		TIM_Cmd(TIM5, DISABLE);
+		
+    /* Clear TIM5 update Flags */
+		TIM_ClearITPendingBit(TIM5, TIM_IT_Update);
+	}
+  else {
+    /* Disable the TIM1 Clock */
+    TIM_Cmd(TIM5, DISABLE);
+  }	
+}
