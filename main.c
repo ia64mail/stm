@@ -132,11 +132,12 @@ void initTIM5() {
 	
 	/* TIM5 clock enable */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
+	RCC_AHB1PeriphClockCmd(USER_BUTTON_GPIO_CLK, ENABLE);
 	
 	/* TIM5 channel 1 pin (PA0) configuration */
 	GPIO_InitStructure.GPIO_Pin =  USER_BUTTON_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(USER_BUTTON_GPIO_PORT, &GPIO_InitStructure);
@@ -144,11 +145,8 @@ void initTIM5() {
 	/* Connect TIM pins to AF5 */
 	GPIO_PinAFConfig(USER_BUTTON_GPIO_PORT, GPIO_PinSource0, GPIO_AF_TIM5);	
 	
-	/* TIM5 source clock */
-	TIM_ETRClockMode1Config(TIM5, TIM_ExtTRGPSC_OFF, TIM_ExtTRGPolarity_NonInverted, 0x00);
-	
 	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Prescaler = 65535;
+	TIM_TimeBaseStructure.TIM_Prescaler = 1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_Period = 5;
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
@@ -161,6 +159,19 @@ void initTIM5() {
 	TIM_ICInitStructure.TIM_ICFilter = TIM_ICPSC_DIV1;
 	TIM_ICInitStructure.TIM_ICFilter = 0x0;
 	TIM_ICInit(TIM5, &TIM_ICInitStructure);
+
+	/* TIM5 source clock */
+	//TIM_TIxExternalClockConfig(TIM5, TIM_TIxExternalCLK1Source_TI1, TIM_ICPolarity_Rising, 0x0);
+	//TIM_ETRClockMode1Config(TIM5, TIM_ExtTRGPSC_OFF, TIM_ExtTRGPolarity_NonInverted, 0x00);
+	
+	/* Select the TIM5 Input Trigger: TI1FP1 */
+  //TIM_SelectInputTrigger(TIM5, TIM_TS_TI1FP1);
+	
+  //TIM_SelectSlaveMode(TIM5, TIM_SlaveMode_Reset);
+  //TIM_SelectMasterSlaveMode(TIM5,TIM_MasterSlaveMode_Enable);	
+	
+	//TIM_SelectInputTrigger(TIM5, TIM_TS_TI1FP1);
+	//TIM_SelectSlaveMode(TIM5, TIM_SlaveMode_External1);
 	
 	/* Enable TIM5 interrupt SOURCE */
 	NVIC_InitStructure.NVIC_IRQChannel = TIM5_IRQn;
@@ -171,7 +182,7 @@ void initTIM5() {
 
 	/* TIM5 interrupt ACTION enable */
 	TIM_ITConfig(TIM5, TIM_IT_Update, ENABLE);
-
+	TIM_ITConfig(TIM5, TIM_IT_CC1, ENABLE);
 }
 
 /**

@@ -189,14 +189,18 @@ void TIM5_IRQHandler() {
   if(TIM_GetITStatus(TIM5, TIM_IT_Update) != RESET) 
   { 
 		/* indicate complete and stop TIM5 */
-		LED3_GPIO_PORT->BSRRL = LED3_PIN;	
-		//TIM_Cmd(TIM5, DISABLE);
+		LED3_GPIO_PORT->BSRRH = LED3_PIN;	
 		
     /* Clear TIM5 update Flags */
 		TIM_ClearITPendingBit(TIM5, TIM_IT_Update);
 	}
-  else {
+	
+	if(TIM_GetITStatus(TIM5, TIM_IT_CC1) != RESET) {
     /* Disable the TIM1 Clock */
-    TIM_Cmd(TIM5, DISABLE);
+		LED3_GPIO_PORT->BSRRL = LED3_PIN;
+
+    /* Clear TIM5 update Flags */
+		TIM_ClearITPendingBit(TIM5, TIM_IT_CC1);
   }	
 }
+
