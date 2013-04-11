@@ -146,22 +146,22 @@ void initTIM5() {
 	GPIO_PinAFConfig(USER_BUTTON_GPIO_PORT, GPIO_PinSource0, GPIO_AF_TIM5);	
 	
 	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Prescaler = 1;
+	TIM_TimeBaseStructure.TIM_Prescaler = 2;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_Period = 5;
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseInit(TIM5, &TIM_TimeBaseStructure);
 	
-	/* Initializes the TIM peripheral */
+	/* Initializes the TIM peripheral
 	TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
 	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
 	TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
 	TIM_ICInitStructure.TIM_ICFilter = TIM_ICPSC_DIV1;
 	TIM_ICInitStructure.TIM_ICFilter = 0x0;
-	TIM_ICInit(TIM5, &TIM_ICInitStructure);
+	TIM_ICInit(TIM5, &TIM_ICInitStructure);*/
 
 	/* TIM5 source clock */
-	//TIM_TIxExternalClockConfig(TIM5, TIM_TIxExternalCLK1Source_TI1, TIM_ICPolarity_Rising, 0x0);
+	TIM_TIxExternalClockConfig(TIM5, TIM_TIxExternalCLK1Source_TI2, TIM_ICPolarity_Rising, 0xA);
 	//TIM_ETRClockMode1Config(TIM5, TIM_ExtTRGPSC_OFF, TIM_ExtTRGPolarity_NonInverted, 0x00);
 	
 	/* Select the TIM5 Input Trigger: TI1FP1 */
