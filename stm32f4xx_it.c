@@ -132,75 +132,86 @@ void SysTick_Handler(void)
 /*  available peripheral interrupt handler's name please refer to the startup */
 /*  file (startup_stm32f4xx.s).                                               */
 /******************************************************************************/
+
+extern __IO uint8_t tempFlag;
+
 /**
-  * @brief  This function handles RTC Alarm interrupt (A and B) request.
+  * @brief  This function handles EXTI0_IRQ Handler.
   * @param  None
   * @retval None
   */
-void RTC_Alarm_IRQHandler(void)
-{
-  /* Check if AlarmA has enabled IT status */
-  if(RTC_GetITStatus(RTC_IT_ALRA) != RESET) 
-  { 
-		uint8_t bitstatus = GPIO_ReadOutputDataBit(LED4_GPIO_PORT, LED4_PIN);
-		if(bitstatus == (uint8_t)Bit_RESET){
-			/* Led ON*/
-			LED4_GPIO_PORT->BSRRL = LED4_PIN;	
-			} else {
-			/* Led OFF*/
-			LED4_GPIO_PORT->BSRRH = LED4_PIN;	
+void EXTI0_IRQHandler() {
+	if(EXTI_GetITStatus(USER_BUTTON_EXTI_LINE) == SET) {
+		if(tempFlag == 0) {
+			tempFlag = 1;
+			enableLed(LED_RX_PROGRESS_GPIO_PORT, LED_RX_PROGRESS_GPIO_PIN);
+		} else {
+			tempFlag = 0;
+			disabelAllLeds();
 		}
-		
-		/* TIM1 led ON*/
-		LED5_GPIO_PORT->BSRRL = LED5_PIN;	
-		TIM_Cmd(TIM1, ENABLE);
-		
-    /* Clear RTC AlarmA Flags */
-    RTC_ClearITPendingBit(RTC_IT_ALRA);
+		/* Clear the EXTI line pending bit */
+		EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
 	}
-  else {
-    /* Disable the RTC Clock */
-    RCC_RTCCLKCmd(DISABLE);
-  }
-  
-  /* Clear the EXTI line 17 */
-  EXTI_ClearITPendingBit(EXTI_Line17);
 }
 
-void TIM1_UP_TIM10_IRQHandler() {
-  /* Check if TIM1 has enabled IT status */
-  if(TIM_GetITStatus(TIM1,TIM_IT_Update) != RESET) 
-  { 
-		/* TIM1 Led OFF*/
-		LED5_GPIO_PORT->BSRRH = LED5_PIN;	
-		TIM_Cmd(TIM1, DISABLE);
-		
-    /* Clear TIM1 update Flags */
-		TIM_ClearITPendingBit(TIM1,TIM_IT_Update);
-	}
-  else {
-    /* Disable the TIM1 Clock */
-    TIM_Cmd(TIM1, DISABLE);
-  }
-}
-
-void TIM5_IRQHandler() {
-  /* Check if TIM5 has enabled IT status */
-  if(TIM_GetITStatus(TIM5, TIM_IT_Update) != RESET) 
-  { 
-		/* indicate complete and stop TIM5 */
-		LED3_GPIO_PORT->BSRRH = LED3_PIN;	
-		
-    /* Clear TIM5 update Flags */
-		TIM_ClearITPendingBit(TIM5, TIM_IT_Update);
+/**
+  * @brief  This function handles EXTI15_10_IRQ Handler.
+  * @param  None
+  * @retval None
+  */
+void EXTI15_10_IRQHandler() {
+	if(EXTI_GetITStatus(USART3_DCD_EXTI_LINE) == SET) {
+		/* Clear the EXTI line pending bit */
+		EXTI_ClearITPendingBit(USART3_DCD_EXTI_LINE);
 	}
 	
-	if(TIM_GetITStatus(TIM5, TIM_IT_CC1) != RESET) {
-    /* Disable the TIM1 Clock */
-		LED3_GPIO_PORT->BSRRL = LED3_PIN;
+	if(EXTI_GetITStatus(USART3_RI_EXTI_LINE) == SET) {
+		/* Clear the EXTI line pending bit */
+		EXTI_ClearITPendingBit(USART3_RI_EXTI_LINE);
+	}
+}
 
-    /* Clear TIM5 update Flags */
-		TIM_ClearITPendingBit(TIM5, TIM_IT_CC1);
-  }	
+/**
+* @brief  This function handles USRAT interrupt request.
+* @param  None
+* @retval None
+*/
+void USARTx_IRQHandler(void)
+{
+		/* USART in Receiver mode */
+		if (USART_GetITStatus(USART, USART_IT_RXNE) == SET)
+		{
+			/*
+			if (ubRxIndex < BUFFERSIZE)
+			{
+				//Receive Transaction data
+				aRxBuffer[ubRxIndex++] = USART_ReceiveData(USARTx);
+			}
+			else
+			{
+				//Disable the Rx buffer not empty interrupt
+				USART_ITConfig(USARTx, USART_IT_RXNE, DISABLE);
+			}
+			*/
+		}
+
+		/* USART in Tramitter mode */
+		if (USART_GetITStatus(USART, USART_IT_TXE) == SET)
+		{
+			/*
+			if (ubTxIndex < BUFFERSIZE)
+			{
+				//Send Transaction data
+				USART_SendData(USARTx, aTxBuffer[ubTxIndex++]);
+			}
+			else
+			{
+				//Disable the Tx buffer empty interrupt
+				USART_ITConfig(USARTx, USART_IT_TXE, DISABLE);
+			}
+			*/
+		}
+		
+		//TODO reset pending bit?
 }
 

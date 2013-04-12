@@ -22,167 +22,246 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
+__IO uint8_t tempFlag = 0;
+
 /**
-  * @brief  Inserts a delay time.
-  * @param  nTime: specifies the delay time length, in 10 ms.
+  * @brief  Initialse USART3 perirherial and related IO pins
+  * @param  None
   * @retval None
   */
-void Delay(__IO uint32_t nTime)
-{
-  /*
-	TimingDelay = nTime;
-
-  while(TimingDelay != 0);
-	*/
-}
-
-void initRTC() {
-	RTC_InitTypeDef rtc_InitStructure;
-	
-	/* Enable the PWR clock */
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
-	
-	/* Allow access to RTC */
-	PWR_BackupAccessCmd(ENABLE);
-	
-  /* Reset RTC Domain */
-  RCC_BackupResetCmd(ENABLE);
-  RCC_BackupResetCmd(DISABLE);	
-	
-	/* Select the RTC Clock Source */
-	RCC_RTCCLKConfig(RCC_RTCCLKSource_HSE_Div8);
-	
-	/* Enable the RTC Clock */
-	RCC_RTCCLKCmd(ENABLE);
-
-	/* Wait for RTC APB registers synchronisation */
-	RTC_WaitForSynchro();
-	
-	/* Calendar Configuration with HSE supposed at 1MHz */
-	rtc_InitStructure.RTC_AsynchPrediv = 0x7F; /* 1 000 000 / 128 */
-	rtc_InitStructure.RTC_SynchPrediv  = 0x2000; /* (1 000 000 / 128) / 8 192 = 0.9536*/
-	rtc_InitStructure.RTC_HourFormat = RTC_HourFormat_24;
-	RTC_Init(&rtc_InitStructure);  
-}
-
-void initAlarm() {
+void initUSART3(){
+	GPIO_InitTypeDef GPIO_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
-	RTC_AlarmTypeDef RTC_AlarmStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
-  
-	/* EXTI configuration */
-	EXTI_ClearITPendingBit(EXTI_Line17);
-	EXTI_InitStructure.EXTI_Line = EXTI_Line17;
-	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);
+	
+	/* Enable SYSCFG bus */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+	
+	/* RX input pin */
+	RCC_APB1PeriphClockCmd(USART3_RX_GPIO_BUS, ENABLE);
+	
+	GPIO_InitStructure.GPIO_Pin 	= USART3_RX_GPIO_PIN;
+	GPIO_InitStructure.GPIO_Mode 	= USART3_RX_GPIO_MODE;
+	GPIO_InitStructure.GPIO_Speed	= USART3_RX_GPIO_SPEED;
+	GPIO_InitStructure.GPIO_OType = USART3_RX_GPIO_OTYPE;
+	GPIO_InitStructure.GPIO_PuPd 	= USART3_RX_GPIO_PTYPE;
+	GPIO_Init(USART3_RX_GPIO_PORT, &GPIO_InitStructure);
+ 
+	GPIO_PinAFConfig(USART3_RX_GPIO_PORT, USART3_RX_GPIO_PIN_SOURCE, USART3_RX_GPIO_AF_MODE);	
+	
+	/* CTS input pin */
+	RCC_APB1PeriphClockCmd(USART3_CTS_GPIO_BUS, ENABLE);
+	
+	GPIO_InitStructure.GPIO_Pin 	= USART3_CTS_GPIO_PIN;
+	GPIO_InitStructure.GPIO_Mode 	= USART3_CTS_GPIO_MODE;
+	GPIO_InitStructure.GPIO_Speed	= USART3_CTS_GPIO_SPEED;
+	GPIO_InitStructure.GPIO_OType = USART3_CTS_GPIO_OTYPE;
+	GPIO_InitStructure.GPIO_PuPd 	= USART3_CTS_GPIO_PTYPE;
+	GPIO_Init(USART3_CTS_GPIO_PORT, &GPIO_InitStructure);
+ 
+	GPIO_PinAFConfig(USART3_CTS_GPIO_PORT, USART3_CTS_GPIO_PIN_SOURCE, USART3_CTS_GPIO_AF_MODE);	
+	
+	/* DCD input pin */
+	RCC_APB1PeriphClockCmd(USART3_DCD_GPIO_BUS, ENABLE);
+	
+	GPIO_InitStructure.GPIO_Pin 	= USART3_DCD_GPIO_PIN;
+	GPIO_InitStructure.GPIO_Mode 	= USART3_DCD_GPIO_MODE;
+	GPIO_InitStructure.GPIO_Speed	= USART3_DCD_GPIO_SPEED;
+	GPIO_InitStructure.GPIO_OType = USART3_DCD_GPIO_OTYPE;
+	GPIO_InitStructure.GPIO_PuPd 	= USART3_DCD_GPIO_PTYPE;
+	GPIO_Init(USART3_DCD_GPIO_PORT, &GPIO_InitStructure);
 
-	/* Enable the RTC Alarm Interrupt */
-	NVIC_InitStructure.NVIC_IRQChannel = RTC_Alarm_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	//enable DCD interrupt
+  SYSCFG_EXTILineConfig(USART3_DCD_EXTI_PORT_SOURCE, USART3_DCD_EXTI_PIN_SOURCE);
+
+  EXTI_InitStructure.EXTI_Line = USART3_DCD_EXTI_LINE;
+  EXTI_InitStructure.EXTI_Mode = USART3_DCD_EXTI_MODE;
+  EXTI_InitStructure.EXTI_Trigger = USART3_DCD_EXTI_TRIGER;  
+  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+  EXTI_Init(&EXTI_InitStructure);
+
+  NVIC_InitStructure.NVIC_IRQChannel = USART3_DCD_NVIC_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = USART3_DCD_NVIC_PRIORITY;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = USART3_DCD_NVIC_SUBPRIORITY;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure); 
+
+	/* RI input pin */
+	RCC_APB1PeriphClockCmd(USART3_RI_GPIO_BUS, ENABLE);
+	
+	GPIO_InitStructure.GPIO_Pin 	= USART3_RI_GPIO_PIN;
+	GPIO_InitStructure.GPIO_Mode 	= USART3_RI_GPIO_MODE;
+	GPIO_InitStructure.GPIO_Speed	= USART3_RI_GPIO_SPEED;
+	GPIO_InitStructure.GPIO_OType = USART3_RI_GPIO_OTYPE;
+	GPIO_InitStructure.GPIO_PuPd 	= USART3_RI_GPIO_PTYPE;
+	GPIO_Init(USART3_RI_GPIO_PORT, &GPIO_InitStructure);
+ 
+	//enable RI interrupt
+  SYSCFG_EXTILineConfig(USART3_RI_EXTI_PORT_SOURCE, USART3_RI_EXTI_PIN_SOURCE);
+
+  EXTI_InitStructure.EXTI_Line = USART3_RI_EXTI_LINE;
+  EXTI_InitStructure.EXTI_Mode = USART3_RI_EXTI_MODE;
+  EXTI_InitStructure.EXTI_Trigger = USART3_RI_EXTI_TRIGER;  
+  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+  EXTI_Init(&EXTI_InitStructure);
+
+  NVIC_InitStructure.NVIC_IRQChannel = USART3_RI_NVIC_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = USART3_RI_NVIC_PRIORITY;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = USART3_RI_NVIC_SUBPRIORITY;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure); 
+	
+	/* TX output pin */
+	RCC_APB1PeriphClockCmd(USART3_TX_GPIO_BUS, ENABLE);
+	
+	GPIO_InitStructure.GPIO_Pin 	= USART3_TX_GPIO_PIN;
+	GPIO_InitStructure.GPIO_Mode 	= USART3_TX_GPIO_MODE;
+	GPIO_InitStructure.GPIO_Speed	= USART3_TX_GPIO_SPEED;
+	GPIO_InitStructure.GPIO_OType = USART3_TX_GPIO_OTYPE;
+	GPIO_InitStructure.GPIO_PuPd 	= USART3_TX_GPIO_PTYPE;
+	GPIO_Init(USART3_TX_GPIO_PORT, &GPIO_InitStructure);
+ 
+	GPIO_PinAFConfig(USART3_TX_GPIO_PORT, USART3_TX_GPIO_PIN_SOURCE, USART3_TX_GPIO_AF_MODE);	
+	
+	/* RTS output pin */
+	RCC_APB1PeriphClockCmd(USART3_RTS_GPIO_BUS, ENABLE);
+	
+	GPIO_InitStructure.GPIO_Pin 	= USART3_RTS_GPIO_PIN;
+	GPIO_InitStructure.GPIO_Mode 	= USART3_RTS_GPIO_MODE;
+	GPIO_InitStructure.GPIO_Speed	= USART3_RTS_GPIO_SPEED;
+	GPIO_InitStructure.GPIO_OType = USART3_RTS_GPIO_OTYPE;
+	GPIO_InitStructure.GPIO_PuPd 	= USART3_RTS_GPIO_PTYPE;
+	GPIO_Init(USART3_RTS_GPIO_PORT, &GPIO_InitStructure);
+ 
+	GPIO_PinAFConfig(USART3_RTS_GPIO_PORT, USART3_RTS_GPIO_PIN_SOURCE, USART3_RTS_GPIO_AF_MODE);	
+
+	/* DTR output pin */
+	RCC_APB1PeriphClockCmd(USART3_DTR_GPIO_BUS, ENABLE);
+	
+	GPIO_InitStructure.GPIO_Pin 	= USART3_DTR_GPIO_PIN;
+	GPIO_InitStructure.GPIO_Mode 	= USART3_DTR_GPIO_MODE;
+	GPIO_InitStructure.GPIO_Speed	= USART3_DTR_GPIO_SPEED;
+	GPIO_InitStructure.GPIO_OType = USART3_DTR_GPIO_OTYPE;
+	GPIO_InitStructure.GPIO_PuPd 	= USART3_DTR_GPIO_PTYPE;
+	GPIO_Init(USART3_DTR_GPIO_PORT, &GPIO_InitStructure);
+	
+	/* USART3 device */
+	USART_InitTypeDef USART_InitStructure;
+
+	RCC_APB1PeriphClockCmd(USART_BUS, ENABLE);
+	
+	USART_OverSampling8Cmd(USART, ENABLE);  
+	
+	USART_InitStructure.USART_BaudRate = USART_BAUND_RATE;
+	USART_InitStructure.USART_WordLength = USART_WORD_LENGHT;
+	USART_InitStructure.USART_StopBits = USART_STOP_BIT;
+	USART_InitStructure.USART_Parity = USART_PARITY;
+	USART_InitStructure.USART_HardwareFlowControl = USART_FLOW_CONTROL;
+	USART_InitStructure.USART_Mode = USART_OPERATION_MODE;
+	USART_Init(USART, &USART_InitStructure);
+	
+	//enable usart interrupt
+	NVIC_InitStructure.NVIC_IRQChannel = USART_NVIC_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = USART_NVIC_PRIORITY;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = USART_NVIC_SUBPRIORITY;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
-  
-	/* Set the alarm A Masks */
-	RTC_AlarmStructInit(&RTC_AlarmStructure);
-	RTC_AlarmStructure.RTC_AlarmMask = RTC_AlarmMask_All;
-	RTC_SetAlarm(RTC_Format_BCD, RTC_Alarm_A, &RTC_AlarmStructure);
-   
-	/* Set alarm A sub seconds and enable SubSec Alarm : generate 8 interrupts per Second */
-	//RTC_AlarmSubSecondConfig(RTC_Alarm_A, 0xFF, RTC_AlarmSubSecondMask_SS14_5);
-	
-	RTC_AlarmCmd(RTC_Alarm_A, ENABLE);
- 
-	/* Enable Alarm A interrupt */
-	RTC_ITConfig(RTC_IT_ALRA, ENABLE);
+
+	//enable devisce
+	USART_Cmd(USART, ENABLE);
 }
 
-void initTIM1() {
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
-	
-	/* TIM1 clock enable */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
-	
-	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Prescaler = 65535;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = 300;
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
-	
-	/* Enable TIM1 interrupt SOURCE */
-	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_TIM10_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);	
-	
-	/* TIM1 interrupt ACTION enable */
-	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
-}
-
-void initTIM5() {
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	TIM_ICInitTypeDef TIM_ICInitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
+/**
+  * @brief Initialise user LED and button 
+  * @param  None
+  * @retval None
+  */
+void initUserControl() {
 	GPIO_InitTypeDef GPIO_InitStructure;
+	EXTI_InitTypeDef EXTI_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
 	
-	/* TIM5 clock enable */
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
-	RCC_AHB1PeriphClockCmd(USER_BUTTON_GPIO_CLK, ENABLE);
+	/* Enable SYSCFG bus */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 	
-	/* TIM5 channel 1 pin (PA0) configuration */
-	GPIO_InitStructure.GPIO_Pin =  USER_BUTTON_PIN;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	/* RX operation in progress */
+  RCC_AHB1PeriphClockCmd(LED_RX_PROGRESS_GPIO_BUS, ENABLE);
+  
+  GPIO_InitStructure.GPIO_Pin = LED_RX_PROGRESS_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Mode = LED_RX_PROGRESS_GPIO_MODE;
+  GPIO_InitStructure.GPIO_OType = LED_RX_PROGRESS_GPIO_OTYPE;
+  GPIO_InitStructure.GPIO_PuPd = LED_RX_PROGRESS_GPIO_PTYPE;
+  GPIO_InitStructure.GPIO_Speed = LED_RX_PROGRESS_GPIO_SPEED;
+  GPIO_Init(LED_RX_PROGRESS_GPIO_PORT, &GPIO_InitStructure);
+
+	/* TX operation in progress */
+  RCC_AHB1PeriphClockCmd(LED_TX_PROGRESS_GPIO_BUS, ENABLE);
+  
+  GPIO_InitStructure.GPIO_Pin = LED_TX_PROGRESS_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Mode = LED_TX_PROGRESS_GPIO_MODE;
+  GPIO_InitStructure.GPIO_OType = LED_TX_PROGRESS_GPIO_OTYPE;
+  GPIO_InitStructure.GPIO_PuPd = LED_TX_PROGRESS_GPIO_PTYPE;
+  GPIO_InitStructure.GPIO_Speed = LED_TX_PROGRESS_GPIO_SPEED;
+  GPIO_Init(LED_TX_PROGRESS_GPIO_PORT, &GPIO_InitStructure);
+
+	/* AT operation Pass */
+  RCC_AHB1PeriphClockCmd(LED_AT_PASS_GPIO_BUS, ENABLE);
+  
+  GPIO_InitStructure.GPIO_Pin = LED_AT_PASS_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Mode = LED_AT_PASS_GPIO_MODE;
+  GPIO_InitStructure.GPIO_OType = LED_AT_PASS_GPIO_OTYPE;
+  GPIO_InitStructure.GPIO_PuPd = LED_AT_PASS_GPIO_PTYPE;
+  GPIO_InitStructure.GPIO_Speed = LED_AT_PASS_GPIO_SPEED;
+  GPIO_Init(LED_AT_PASS_GPIO_PORT, &GPIO_InitStructure);
+
+	/* AT operation Fail */
+  RCC_AHB1PeriphClockCmd(LED_AT_FAIL_GPIO_BUS, ENABLE);
+  
+  GPIO_InitStructure.GPIO_Pin = LED_AT_FAIL_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Mode = LED_AT_FAIL_GPIO_MODE;
+  GPIO_InitStructure.GPIO_OType = LED_AT_FAIL_GPIO_OTYPE;
+  GPIO_InitStructure.GPIO_PuPd = LED_AT_FAIL_GPIO_PTYPE;
+  GPIO_InitStructure.GPIO_Speed = LED_AT_FAIL_GPIO_SPEED;
+  GPIO_Init(LED_AT_FAIL_GPIO_PORT, &GPIO_InitStructure);
+	
+	/* User button */
+	RCC_APB1PeriphClockCmd(USER_BUTTON_GPIO_BUS, ENABLE);
+	
+	GPIO_InitStructure.GPIO_Pin 	= USER_BUTTON_GPIO_PIN;
+	GPIO_InitStructure.GPIO_Mode 	= USER_BUTTON_GPIO_MODE;
+	GPIO_InitStructure.GPIO_Speed	= USER_BUTTON_GPIO_SPEED;
+	GPIO_InitStructure.GPIO_OType = USER_BUTTON_GPIO_OTYPE;
+	GPIO_InitStructure.GPIO_PuPd 	= USER_BUTTON_GPIO_PTYPE;
 	GPIO_Init(USER_BUTTON_GPIO_PORT, &GPIO_InitStructure);
  
-	/* Connect TIM pins to AF5 */
-	GPIO_PinAFConfig(USER_BUTTON_GPIO_PORT, GPIO_PinSource0, GPIO_AF_TIM5);	
-	
-	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Prescaler = 2;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = 5;
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInit(TIM5, &TIM_TimeBaseStructure);
-	
-	/* Initializes the TIM peripheral
-	TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
-	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
-	TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
-	TIM_ICInitStructure.TIM_ICFilter = TIM_ICPSC_DIV1;
-	TIM_ICInitStructure.TIM_ICFilter = 0x0;
-	TIM_ICInit(TIM5, &TIM_ICInitStructure);*/
+	//enable push interrupt
+  SYSCFG_EXTILineConfig(USER_BUTTON_EXTI_PORT_SOURCE, USER_BUTTON_EXTI_PIN_SOURCE);
 
-	/* TIM5 source clock */
-	TIM_TIxExternalClockConfig(TIM5, TIM_TIxExternalCLK1Source_TI2, TIM_ICPolarity_Rising, 0xA);
-	//TIM_ETRClockMode1Config(TIM5, TIM_ExtTRGPSC_OFF, TIM_ExtTRGPolarity_NonInverted, 0x00);
-	
-	/* Select the TIM5 Input Trigger: TI1FP1 */
-  //TIM_SelectInputTrigger(TIM5, TIM_TS_TI1FP1);
-	
-  //TIM_SelectSlaveMode(TIM5, TIM_SlaveMode_Reset);
-  //TIM_SelectMasterSlaveMode(TIM5,TIM_MasterSlaveMode_Enable);	
-	
-	//TIM_SelectInputTrigger(TIM5, TIM_TS_TI1FP1);
-	//TIM_SelectSlaveMode(TIM5, TIM_SlaveMode_External1);
-	
-	/* Enable TIM5 interrupt SOURCE */
-	NVIC_InitStructure.NVIC_IRQChannel = TIM5_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);	
+  EXTI_InitStructure.EXTI_Line = USER_BUTTON_EXTI_LINE;
+  EXTI_InitStructure.EXTI_Mode = USER_BUTTON_EXTI_MODE;
+  EXTI_InitStructure.EXTI_Trigger = USER_BUTTON_EXTI_TRIGER;  
+  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+  EXTI_Init(&EXTI_InitStructure);
 
-	/* TIM5 interrupt ACTION enable */
-	TIM_ITConfig(TIM5, TIM_IT_Update, ENABLE);
-	TIM_ITConfig(TIM5, TIM_IT_CC1, ENABLE);
+  NVIC_InitStructure.NVIC_IRQChannel = USER_BUTTON_NVIC_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = USER_BUTTON_NVIC_PRIORITY;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = USER_BUTTON_NVIC_SUBPRIORITY;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure); 
+}
+
+void enableLed(GPIO_TypeDef * port, uint16_t pin) {
+	port->BSRRL = pin;
+}
+
+void disableLed(GPIO_TypeDef * port, uint16_t pin) {
+	port->BSRRH = pin;
+}
+
+void disabelAllLeds() {
+	//assume that all led connected to same port
+	disableLed(LED_AT_PASS_GPIO_PORT, 
+		LED_RX_PROGRESS_GPIO_PIN | LED_AT_PASS_GPIO_PIN | LED_AT_FAIL_GPIO_PIN | LED_TX_PROGRESS_GPIO_PIN);
 }
 
 /**
@@ -192,42 +271,13 @@ void initTIM5() {
   */
 int main(void)
 {
-	/* Initialize LEDs and User_Button on STM32F4-Discovery --------------------*/
-	GPIO_InitTypeDef  GPIO_InitStructure;
+	initUserControl();
+	initUSART3();
 	
-  /* Enable the GPIO_LED Clock */
-  RCC_AHB1PeriphClockCmd(LED4_GPIO_CLK, ENABLE);
-
-  /* Configure the GPIO_LED pin */
-  GPIO_InitStructure.GPIO_Pin = LED4_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_Init(LED4_GPIO_PORT, &GPIO_InitStructure);
-	
-  GPIO_InitStructure.GPIO_Pin = LED5_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_Init(LED5_GPIO_PORT, &GPIO_InitStructure);
-	
-	GPIO_InitStructure.GPIO_Pin = LED3_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_Init(LED3_GPIO_PORT, &GPIO_InitStructure);	
-	
-	initRTC();
-	initAlarm();	
-	
-	initTIM1();
-	initTIM5();
-	
-	//start TIM5
-	TIM_Cmd(TIM5, ENABLE);
+/*		
+	USART_ITConfig(USART, USART_IT_RXNE, ENABLE);
+	USART_ITConfig(USART, USART_IT_TXE, ENABLE);
+*/
 	
 	while(1) {
 	}
