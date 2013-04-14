@@ -25,6 +25,15 @@
 #include "stm32f4xx_it.h"
 #include "main.h"
 
+extern __IO uint8_t speedDetectStart;
+extern __IO uint32_t delay;
+
+extern __IO const uint8_t * txPointer;
+extern __IO const uint8_t * txBuffer;
+extern __IO uint8_t * rxPointer;
+extern __IO uint8_t * rxBuffer;
+
+
 /******************************************************************************/
 /*            Cortex-M4 Processor Exceptions Handlers                         */
 /******************************************************************************/
@@ -124,6 +133,30 @@ void PendSV_Handler(void)
   */
 void SysTick_Handler(void)
 {
+	if(speedDetectStart == 1) {
+		if(delay > 0) {
+			delay--;
+		} else {
+			//restart sending initialise AT command
+			delay = 10000;
+			
+			if(rxBuffer != NULL) {
+				delete rxBuffer;
+			}
+			
+			rxBuffer = new uint8_t[10];
+			txBuffer = "AT\n";
+			
+			rxPointer = rxBuffer;
+			txPointer = txBuffer;
+			
+			//start transmission
+			USART_ITConfig(USART, USART_IT_RXNE, DISABLE);
+			
+			USART_ITConfig(USART, USART_IT_TXE, ENABLE);
+			USART_ITConfig(USART, USART_IT_TC, ENABLE);
+		}
+	}
 }
 
 /******************************************************************************/
@@ -133,8 +166,6 @@ void SysTick_Handler(void)
 /*  file (startup_stm32f4xx.s).                                               */
 /******************************************************************************/
 
-extern __IO uint8_t tempFlag;
-
 /**
   * @brief  This function handles EXTI0_IRQ Handler.
   * @param  None
@@ -142,13 +173,10 @@ extern __IO uint8_t tempFlag;
   */
 void EXTI0_IRQHandler() {
 	if(EXTI_GetITStatus(USER_BUTTON_EXTI_LINE) == SET) {
-		if(tempFlag == 0) {
-			tempFlag = 1;
-			enableLed(LED_RX_PROGRESS_GPIO_PORT, LED_RX_PROGRESS_GPIO_PIN);
-		} else {
-			tempFlag = 0;
-			disabelAllLeds();
-		}
+		
+		speedDetectStart = 1;
+		USART3_DTR_GPIO_PORT->BSRRH = USART3_DTR_GPIO_PIN;
+		
 		/* Clear the EXTI line pending bit */
 		EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
 	}
@@ -176,42 +204,69 @@ void EXTI15_10_IRQHandler() {
 * @param  None
 * @retval None
 */
-void USARTx_IRQHandler(void)
+void USART3_IRQHandler(void)
 {
 		/* USART in Receiver mode */
 		if (USART_GetITStatus(USART, USART_IT_RXNE) == SET)
 		{
-			/*
-			if (ubRxIndex < BUFFERSIZE)
+			if (rxPointer - rxBuffer <= 6)
 			{
-				//Receive Transaction data
-				aRxBuffer[ubRxIndex++] = USART_ReceiveData(USARTx);
+				//indicate RX process
+				enableLed(LED_RX_PROGRESS_GPIO_PORT, LED_RX_PROGRESS_GPIO_PIN);
+								
+				//receive Transaction data
+				*rxPointer = USART_ReceiveData(USART);
+				rxPointer++;
 			}
 			else
 			{
-				//Disable the Rx buffer not empty interrupt
-				USART_ITConfig(USARTx, USART_IT_RXNE, DISABLE);
+				disableLed(LED_RX_PROGRESS_GPIO_PORT, LED_RX_PROGRESS_GPIO_PIN);
+				USART_ITConfig(USART, USART_IT_RXNE, DISABLE);
+				
+				//compare to correct responce
+				char * crPointer = "\r\nOK\r\n";
+				rxPointer = rxBuffer;
+				while(*rxPointer == *crPointer && *crPointer != '\0'){
+					crPointer++;
+					rxPointer++;
+				}
+				
+				if(*crPointer == '\0') {
+					speedDetectStart = 0;
+				}
+				
 			}
-			*/
 		}
 
 		/* USART in Tramitter mode */
 		if (USART_GetITStatus(USART, USART_IT_TXE) == SET)
 		{
-			/*
-			if (ubTxIndex < BUFFERSIZE)
+			if ((*txPointer) != '\0')
 			{
-				//Send Transaction data
-				USART_SendData(USARTx, aTxBuffer[ubTxIndex++]);
+				//indicate TX process
+				enableLed(LED_TX_PROGRESS_GPIO_PORT, LED_TX_PROGRESS_GPIO_PIN);
+				
+				//send Transaction data
+				USART_SendData(USART, *txPointer);
+				txPointer++;
 			}
 			else
 			{
-				//Disable the Tx buffer empty interrupt
-				USART_ITConfig(USARTx, USART_IT_TXE, DISABLE);
+				//wait until transfer completted, see USART_IT_TC
 			}
-			*/
 		}
 		
-		//TODO reset pending bit?
+		/* USART Tramition completed */
+		if (USART_GetITStatus(USART, USART_IT_TC) == SET)
+		{
+				//disable transmission mode
+				disableLed(LED_TX_PROGRESS_GPIO_PORT, LED_TX_PROGRESS_GPIO_PIN);
+				USART_ITConfig(USART, USART_IT_TXE, DISABLE);
+				
+				USART_ClearFlag(USART3, USART_IT_TC);
+				USART_ITConfig(USART, USART_IT_TC, DISABLE);
+				
+				//start receive responce
+				USART_ITConfig(USART, USART_IT_RXNE, ENABLE);
+		}
 }
-

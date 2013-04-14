@@ -152,7 +152,7 @@
             <CpuDllArguments></CpuDllArguments>
             <PeripheralDll></PeripheralDll>
             <PeripheralDllArguments></PeripheralDllArguments>
-            <InitializationFile></InitializationFile>
+            <InitializationFile>..\..\Keil\ARM\Boards\Keil\MCBSTM32C\Blinky_ULp\STM32_SWO.ini</InitializationFile>
             <Driver>STLink\ST-LINKIII-KEIL_SWO.dll</Driver>
           </TargetDlls>
         </DebugOption>
@@ -347,7 +347,7 @@
             <uThumb>0</uThumb>
             <uSurpInc>0</uSurpInc>
             <VariousControls>
-              <MiscControls></MiscControls>
+              <MiscControls>--cpp</MiscControls>
               <Define>USE_STDPERIPH_DRIVER, STM32F40XX, HSE_VALUE=8000000</Define>
               <Undefine></Undefine>
               <IncludePath>.;C:\STM32F4xx_DSP_StdPeriph_Lib_V1.1.0\Libraries\CMSIS\Include;C:\STM32F4xx_DSP_StdPeriph_Lib_V1.1.0\Libraries\CMSIS\Device\ST\STM32F4xx\Include;C:\STM32F4xx_DSP_StdPeriph_Lib_V1.1.0\Libraries\STM32F4xx_StdPeriph_Driver\inc</IncludePath>

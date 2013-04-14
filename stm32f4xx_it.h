@@ -42,7 +42,7 @@ void SysTick_Handler(void);
 void EXTI0_IRQHandler();
 void EXTI15_10_IRQHandler();
 
-void USARTx_IRQHandler(void);
+void USART3_IRQHandler(void);
 	 
 #ifdef __cplusplus
 }

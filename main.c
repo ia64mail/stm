@@ -22,7 +22,14 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-__IO uint8_t tempFlag = 0;
+__IO uint8_t speedDetectStart = 0;
+__IO uint32_t delay = 10000;
+
+__IO const uint8_t * txBuffer = "A\n";
+__IO const uint8_t * txPointer = txBuffer;
+
+__IO uint8_t * rxBuffer;
+__IO uint8_t * rxPointer = rxBuffer;
 
 /**
   * @brief  Initialse USART3 perirherial and related IO pins
@@ -62,7 +69,7 @@ void initUSART3(){
 	GPIO_PinAFConfig(USART3_CTS_GPIO_PORT, USART3_CTS_GPIO_PIN_SOURCE, USART3_CTS_GPIO_AF_MODE);	
 	
 	/* DCD input pin */
-	RCC_APB1PeriphClockCmd(USART3_DCD_GPIO_BUS, ENABLE);
+	RCC_AHB1PeriphClockCmd(USART3_DCD_GPIO_BUS, ENABLE);
 	
 	GPIO_InitStructure.GPIO_Pin 	= USART3_DCD_GPIO_PIN;
 	GPIO_InitStructure.GPIO_Mode 	= USART3_DCD_GPIO_MODE;
@@ -87,7 +94,7 @@ void initUSART3(){
   NVIC_Init(&NVIC_InitStructure); 
 
 	/* RI input pin */
-	RCC_APB1PeriphClockCmd(USART3_RI_GPIO_BUS, ENABLE);
+	RCC_AHB1PeriphClockCmd(USART3_RI_GPIO_BUS, ENABLE);
 	
 	GPIO_InitStructure.GPIO_Pin 	= USART3_RI_GPIO_PIN;
 	GPIO_InitStructure.GPIO_Mode 	= USART3_RI_GPIO_MODE;
@@ -136,7 +143,7 @@ void initUSART3(){
 	GPIO_PinAFConfig(USART3_RTS_GPIO_PORT, USART3_RTS_GPIO_PIN_SOURCE, USART3_RTS_GPIO_AF_MODE);	
 
 	/* DTR output pin */
-	RCC_APB1PeriphClockCmd(USART3_DTR_GPIO_BUS, ENABLE);
+	RCC_AHB1PeriphClockCmd(USART3_DTR_GPIO_BUS, ENABLE);
 	
 	GPIO_InitStructure.GPIO_Pin 	= USART3_DTR_GPIO_PIN;
 	GPIO_InitStructure.GPIO_Mode 	= USART3_DTR_GPIO_MODE;
@@ -225,7 +232,7 @@ void initUserControl() {
   GPIO_Init(LED_AT_FAIL_GPIO_PORT, &GPIO_InitStructure);
 	
 	/* User button */
-	RCC_APB1PeriphClockCmd(USER_BUTTON_GPIO_BUS, ENABLE);
+	RCC_AHB1PeriphClockCmd(USER_BUTTON_GPIO_BUS, ENABLE);
 	
 	GPIO_InitStructure.GPIO_Pin 	= USER_BUTTON_GPIO_PIN;
 	GPIO_InitStructure.GPIO_Mode 	= USER_BUTTON_GPIO_MODE;
@@ -250,6 +257,19 @@ void initUserControl() {
   NVIC_Init(&NVIC_InitStructure); 
 }
 
+/**
+  * @brief Initialise systick 
+  * @param  None
+  * @retval None
+  */
+void configSysTick(){
+	if (SysTick_Config(SystemCoreClock / 1000))
+	{ 
+		/* Capture error */ 
+		while (1);
+	}
+}
+
 void enableLed(GPIO_TypeDef * port, uint16_t pin) {
 	port->BSRRL = pin;
 }
@@ -271,13 +291,9 @@ void disabelAllLeds() {
   */
 int main(void)
 {
+	configSysTick();
 	initUserControl();
 	initUSART3();
-	
-/*		
-	USART_ITConfig(USART, USART_IT_RXNE, ENABLE);
-	USART_ITConfig(USART, USART_IT_TXE, ENABLE);
-*/
 	
 	while(1) {
 	}
