@@ -23,13 +23,13 @@
 #include "main.h"
 
 __IO uint8_t speedDetectStart = 0;
-__IO uint32_t delay = 10000;
+__IO uint32_t delay = 0;
 
-__IO const uint8_t * txBuffer = "A\n";
-__IO const uint8_t * txPointer = txBuffer;
+__IO const char * txBuffer;
+__IO const char * txPointer;
 
-__IO uint8_t * rxBuffer;
-__IO uint8_t * rxPointer = rxBuffer;
+__IO char * rxBuffer;
+__IO char * rxPointer;
 
 /**
   * @brief  Initialse USART3 perirherial and related IO pins
@@ -157,7 +157,7 @@ void initUSART3(){
 
 	RCC_APB1PeriphClockCmd(USART_BUS, ENABLE);
 	
-	USART_OverSampling8Cmd(USART, ENABLE);  
+	//USART_OverSampling8Cmd(USART, ENABLE);  
 	
 	USART_InitStructure.USART_BaudRate = USART_BAUND_RATE;
 	USART_InitStructure.USART_WordLength = USART_WORD_LENGHT;

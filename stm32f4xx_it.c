@@ -28,10 +28,10 @@
 extern __IO uint8_t speedDetectStart;
 extern __IO uint32_t delay;
 
-extern __IO const uint8_t * txPointer;
-extern __IO const uint8_t * txBuffer;
-extern __IO uint8_t * rxPointer;
-extern __IO uint8_t * rxBuffer;
+extern __IO const char * txPointer;
+extern __IO const char * txBuffer;
+extern __IO char * rxPointer;
+extern __IO char * rxBuffer;
 
 
 /******************************************************************************/
@@ -126,6 +126,8 @@ void PendSV_Handler(void)
 {
 }
 
+__IO char cc = 0;
+
 /**
   * @brief  This function handles SysTick Handler.
   * @param  None
@@ -139,13 +141,31 @@ void SysTick_Handler(void)
 		} else {
 			//restart sending initialise AT command
 			delay = 10000;
+			cc++;
 			
 			if(rxBuffer != NULL) {
 				delete rxBuffer;
 			}
+			rxBuffer = new char[10];
 			
-			rxBuffer = new uint8_t[10];
-			txBuffer = "AT\n";
+			switch(cc) {
+				case 1:txBuffer = "A\n";
+					break;
+				case 2:txBuffer = "AT\n";
+					break;
+				case 3:txBuffer = "AT&V\n";
+					break;
+				case 4:txBuffer = "A\n";
+					break;
+				case 5:txBuffer = "AT";
+					break;
+				case 6:txBuffer = "\n";
+					break;
+				case 7:txBuffer = "AT\n";
+					break;
+				default:
+					txBuffer = "AT\n";
+			}
 			
 			rxPointer = rxBuffer;
 			txPointer = txBuffer;
@@ -173,9 +193,11 @@ void SysTick_Handler(void)
   */
 void EXTI0_IRQHandler() {
 	if(EXTI_GetITStatus(USER_BUTTON_EXTI_LINE) == SET) {
+
+		USART3_DTR_GPIO_PORT->BSRRH = USART3_DTR_GPIO_PIN;
+		USART_ITConfig(USART, USART_IT_ERR, DISABLE);
 		
 		speedDetectStart = 1;
-		USART3_DTR_GPIO_PORT->BSRRH = USART3_DTR_GPIO_PIN;
 		
 		/* Clear the EXTI line pending bit */
 		EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
@@ -232,10 +254,12 @@ void USART3_IRQHandler(void)
 				}
 				
 				if(*crPointer == '\0') {
+					enableLed(LED_AT_PASS_GPIO_PORT, LED_AT_PASS_GPIO_PIN);
 					speedDetectStart = 0;
 				}
-				
 			}
+			
+			return;
 		}
 
 		/* USART in Tramitter mode */
@@ -254,19 +278,46 @@ void USART3_IRQHandler(void)
 			{
 				//wait until transfer completted, see USART_IT_TC
 			}
+			
+			return;
 		}
 		
 		/* USART Tramition completed */
 		if (USART_GetITStatus(USART, USART_IT_TC) == SET)
 		{
-				//disable transmission mode
-				disableLed(LED_TX_PROGRESS_GPIO_PORT, LED_TX_PROGRESS_GPIO_PIN);
-				USART_ITConfig(USART, USART_IT_TXE, DISABLE);
+			//check that was sent correct count of chars
+			if((*txPointer) != '\0') {
+				enableLed(LED_AT_FAIL_GPIO_PORT, LED_AT_FAIL_GPIO_PIN);
+				speedDetectStart = 0;
+			}
+			
+			//disable transmission mode
+			disableLed(LED_TX_PROGRESS_GPIO_PORT, LED_TX_PROGRESS_GPIO_PIN);
+			USART_ITConfig(USART, USART_IT_TXE, DISABLE);
+			
+			USART_ClearFlag(USART3, USART_IT_TC);
+			USART_ITConfig(USART, USART_IT_TC, DISABLE);
 				
-				USART_ClearFlag(USART3, USART_IT_TC);
-				USART_ITConfig(USART, USART_IT_TC, DISABLE);
+			//start receive responce
+			USART_ITConfig(USART, USART_IT_RXNE, ENABLE);
+			
+			return;
+		}
+		
+		/* USART error detected */
+		if(USART_GetITStatus(USART, USART_IT_ERR) == SET) {
+			if(USART_GetFlagStatus(USART, USART_FLAG_ORE) == SET) {
+				speedDetectStart = 0;
+			} else if (USART_GetFlagStatus(USART, USART_FLAG_NE) == SET) {
+				speedDetectStart = 0;
+			} else if (USART_GetFlagStatus(USART, USART_FLAG_FE) == SET) {
+				speedDetectStart = 0;
+			} else if (USART_GetFlagStatus(USART, USART_FLAG_PE) == SET) {
+				speedDetectStart = 0;
+			}
 				
-				//start receive responce
-				USART_ITConfig(USART, USART_IT_RXNE, ENABLE);
+			enableLed(LED_AT_FAIL_GPIO_PORT, LED_AT_FAIL_GPIO_PIN);
+			
+			USART_ClearFlag(USART3, USART_IT_ERR);
 		}
 }
