@@ -140,41 +140,26 @@ void SysTick_Handler(void)
 			delay--;
 		} else {
 			//restart sending initialise AT command
-			delay = 10000;
+			delay = 5000;
 			cc++;
 			
 			if(rxBuffer != NULL) {
 				delete rxBuffer;
 			}
-			rxBuffer = new char[10];
+			rxBuffer = new char[50];
 			
 			switch(cc) {
-				case 1:txBuffer = "A\n";
-					break;
-				case 2:txBuffer = "AT\n";
-					break;
-				case 3:txBuffer = "AT&V\n";
-					break;
-				case 4:txBuffer = "A\n";
-					break;
-				case 5:txBuffer = "AT";
-					break;
-				case 6:txBuffer = "\n";
-					break;
-				case 7:txBuffer = "AT\n";
-					break;
 				default:
-					txBuffer = "AT\n";
+					txBuffer = "AT\r";
 			}
 			
 			rxPointer = rxBuffer;
 			txPointer = txBuffer;
 			
 			//start transmission
-			USART_ITConfig(USART, USART_IT_RXNE, DISABLE);
+			USART_ITConfig(USART, USART_IT_RXNE, ENABLE);
 			
-			USART_ITConfig(USART, USART_IT_TXE, ENABLE);
-			USART_ITConfig(USART, USART_IT_TC, ENABLE);
+			USART_ITConfig(USART, USART_IT_TXE, ENABLE);			
 		}
 	}
 }
@@ -195,9 +180,12 @@ void EXTI0_IRQHandler() {
 	if(EXTI_GetITStatus(USER_BUTTON_EXTI_LINE) == SET) {
 
 		USART3_DTR_GPIO_PORT->BSRRH = USART3_DTR_GPIO_PIN;
-		USART_ITConfig(USART, USART_IT_ERR, DISABLE);
+		USART_ITConfig(USART, USART_IT_ERR, ENABLE);
+		
+		USART_ITConfig(USART, USART_IT_RXNE, ENABLE);
 		
 		speedDetectStart = 1;
+		disabelAllLeds();
 		
 		/* Clear the EXTI line pending bit */
 		EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
@@ -231,7 +219,7 @@ void USART3_IRQHandler(void)
 		/* USART in Receiver mode */
 		if (USART_GetITStatus(USART, USART_IT_RXNE) == SET)
 		{
-			if (rxPointer - rxBuffer <= 6)
+			if (rxPointer - rxBuffer < 9)
 			{
 				//indicate RX process
 				enableLed(LED_RX_PROGRESS_GPIO_PORT, LED_RX_PROGRESS_GPIO_PIN);
@@ -239,14 +227,19 @@ void USART3_IRQHandler(void)
 				//receive Transaction data
 				*rxPointer = USART_ReceiveData(USART);
 				rxPointer++;
+				
+				USART_ClearITPendingBit(USART, USART_IT_RXNE);
 			}
-			else
+			
+			if(rxPointer - rxBuffer == 9)
 			{
+				*rxPointer = '\0';
+				
 				disableLed(LED_RX_PROGRESS_GPIO_PORT, LED_RX_PROGRESS_GPIO_PIN);
 				USART_ITConfig(USART, USART_IT_RXNE, DISABLE);
 				
 				//compare to correct responce
-				char * crPointer = "\r\nOK\r\n";
+				char * crPointer = "AT\r\r\nOK\r\n";
 				rxPointer = rxBuffer;
 				while(*rxPointer == *crPointer && *crPointer != '\0'){
 					crPointer++;
@@ -263,7 +256,8 @@ void USART3_IRQHandler(void)
 		}
 
 		/* USART in Tramitter mode */
-		if (USART_GetITStatus(USART, USART_IT_TXE) == SET)
+		if (USART_GetITStatus(USART, USART_IT_TXE) == SET
+			&& USART_GetITStatus(USART, USART_IT_TC) != SET)
 		{
 			if ((*txPointer) != '\0')
 			{
@@ -277,6 +271,7 @@ void USART3_IRQHandler(void)
 			else
 			{
 				//wait until transfer completted, see USART_IT_TC
+				USART_ITConfig(USART, USART_IT_TC, ENABLE);
 			}
 			
 			return;
